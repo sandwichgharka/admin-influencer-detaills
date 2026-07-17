@@ -133,6 +133,24 @@
         <tbody id="tableBody"></tbody>
       </table>
     </div>
+
+    <h2 style="font-family:'Alfa Slab One',serif; font-size:1.2rem; margin: 40px 0 14px; color: var(--brick);">TnC Form Submissions</h2>
+    <div class="table-wrap">
+      <div id="tncLoading">Loading…</div>
+      <div id="tncEmpty" style="display:none;">No TnC submissions yet.</div>
+      <table id="tncTable" style="display:none; min-width: 500px;">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Instagram</th>
+            <th>WhatsApp</th>
+            <th>Submitted</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tncTableBody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -143,8 +161,59 @@
   const SUPABASE_KEY = "sb_publishable_jXl_tc9KwbRSBpT_Hyk5Nw_j4FVfSrQ";
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  document.getElementById('refreshBtn').addEventListener('click', loadData);
+  document.getElementById('refreshBtn').addEventListener('click', () => { loadData(); loadTnc(); });
   loadData();
+  loadTnc();
+
+  async function loadTnc(){
+    const loading = document.getElementById('tncLoading');
+    const empty = document.getElementById('tncEmpty');
+    const table = document.getElementById('tncTable');
+    const tbody = document.getElementById('tncTableBody');
+
+    loading.style.display = 'block';
+    empty.style.display = 'none';
+    table.style.display = 'none';
+
+    const { data, error } = await supabase
+      .from('tnc_submissions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    loading.style.display = 'none';
+
+    if (error) {
+      loading.style.display = 'block';
+      loading.textContent = "Error loading data.";
+      console.error(error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      empty.style.display = 'block';
+      return;
+    }
+
+    table.style.display = 'table';
+    tbody.innerHTML = '';
+    data.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(row.creator_name)}</td>
+        <td>${escapeHtml(row.instagram_handle)}</td>
+        <td>${escapeHtml(row.whatsapp_number)}</td>
+        <td>${new Date(row.created_at).toLocaleString()}</td>
+        <td><button class="icon-btn del">🗑</button></td>
+      `;
+      tr.querySelector('.del').addEventListener('click', async () => {
+        if (!confirm(`Delete TnC submission from ${row.creator_name}?`)) return;
+        const { error } = await supabase.from('tnc_submissions').delete().eq('id', row.id);
+        if (error) { alert("Failed to delete."); console.error(error); return; }
+        loadTnc();
+      });
+      tbody.appendChild(tr);
+    });
+  }
 
   async function loadData(){
     const loading = document.getElementById('loading');
