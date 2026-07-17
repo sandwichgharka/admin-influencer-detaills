@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sandwich Ghar Ka — Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Space+Mono:wght@400;700&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --kraft: #E4D3AE;
+    --kraft-dark: #C9B383;
+    --paper: #FBF6EC;
+    --ink: #2B2420;
+    --brick: #A8382B;
+    --mustard: #D69A1E;
+    --green: #4C7A4C;
+    --line: rgba(43,36,32,0.18);
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(43,36,32,0.06) 1px, transparent 1px) 0 0/22px 22px,
+      var(--kraft);
+    color: var(--ink);
+    font-family: 'Karla', sans-serif;
+  }
+  .wrap{ max-width: 1100px; margin: 0 auto; padding: 30px 20px 80px; }
+
+  header{ text-align:center; margin-bottom: 24px; }
+  h1{
+    font-family:'Alfa Slab One', serif;
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    margin: 0 0 6px;
+    text-shadow: 2px 2px 0 var(--mustard);
+  }
+  .sub{ font-family:'Space Mono', monospace; font-size:0.8rem; opacity:0.6; }
+
+  .btn{
+    font-family:'Space Mono', monospace; font-size:0.8rem; letter-spacing:1px;
+    text-transform:uppercase; background: var(--brick); color: var(--paper);
+    border:2px solid var(--ink); border-radius:4px; padding:9px 16px; cursor:pointer;
+  }
+  .btn:hover{ transform: translate(-1px,-1px); }
+
+  /* ---- dashboard ---- */
+  #dashboard{ display:block; }
+
+  .stats{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom: 24px; }
+  .stat{
+    flex:1; min-width: 140px; background: var(--paper); border:1.5px solid var(--ink);
+    border-radius:6px; padding: 16px 18px; box-shadow: 3px 3px 0 var(--kraft-dark);
+  }
+  .stat .num{ font-family:'Alfa Slab One', serif; font-size:1.6rem; color: var(--brick); }
+  .stat .label{ font-family:'Space Mono', monospace; font-size:0.7rem; text-transform:uppercase; opacity:0.65; }
+
+  .table-wrap{
+    background: var(--paper); border:1.5px solid var(--ink); border-radius:6px;
+    overflow-x:auto; box-shadow: 4px 4px 0 var(--kraft-dark);
+  }
+  table{ width:100%; border-collapse: collapse; font-size:0.85rem; min-width: 900px; }
+  th{
+    font-family:'Space Mono', monospace; text-transform:uppercase; font-size:0.7rem;
+    letter-spacing:1px; text-align:left; padding: 12px 10px; border-bottom: 2px solid var(--ink);
+    background: var(--kraft); position: sticky; top:0;
+  }
+  td{ padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tr:last-child td{ border-bottom:none; }
+
+  td input, td select{
+    width: 100%; padding: 6px 8px; border-radius: 4px; border:1.5px solid var(--line);
+    font-family:'Karla', sans-serif; font-size: 0.85rem; background: transparent;
+  }
+  td input:focus, td select:focus{ outline: 2px solid var(--brick); border-color: var(--brick); }
+
+  .badge{
+    display:inline-block; padding: 3px 10px; border-radius: 20px; font-family:'Space Mono', monospace;
+    font-size:0.7rem; text-transform:uppercase; border: 1.5px solid var(--ink);
+  }
+  .badge.pending{ background: var(--mustard); }
+  .badge.paid, .badge.refunded{ background: var(--green); color: var(--paper); }
+
+  .row-actions{ display:flex; gap:6px; }
+  .icon-btn{
+    border:1.5px solid var(--ink); background: var(--kraft); border-radius:4px;
+    padding: 5px 9px; cursor:pointer; font-size:0.8rem;
+  }
+  .icon-btn.save{ background: var(--green); color: var(--paper); }
+  .icon-btn.del{ background: var(--brick); color: var(--paper); }
+
+  #loading, #empty{
+    text-align:center; padding: 40px; font-family:'Space Mono', monospace; opacity:0.6;
+  }
+
+  .toolbar{ display:flex; justify-content: space-between; align-items:center; margin-bottom: 14px; flex-wrap: wrap; gap:10px; }
+  .refresh-note{ font-family:'Space Mono', monospace; font-size:0.75rem; opacity:0.55; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Collab Admin Panel</h1>
+    <div class="sub">Sandwich Ghar Ka — Influencer Submissions</div>
+  </header>
+
+  <div id="dashboard">
+    <div class="stats" id="stats"></div>
+
+    <div class="toolbar">
+      <button class="btn" id="refreshBtn">↻ Refresh</button>
+      <span class="refresh-note" id="lastUpdated"></span>
+    </div>
+
+    <div class="table-wrap">
+      <div id="loading">Loading submissions…</div>
+      <div id="empty" style="display:none;">No submissions yet.</div>
+      <table id="dataTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Instagram</th>
+            <th>WhatsApp</th>
+            <th>Video Link</th>
+            <th>Order ₹</th>
+            <th>Status</th>
+            <th>Notes</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+  const SUPABASE_URL = "https://worvbgprnndrvhhlaeig.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_jXl_tc9KwbRSBpT_Hyk5Nw_j4FVfSrQ";
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  document.getElementById('refreshBtn').addEventListener('click', loadData);
+  loadData();
+
+  async function loadData(){
+    const loading = document.getElementById('loading');
+    const empty = document.getElementById('empty');
+    const table = document.getElementById('dataTable');
+    const tbody = document.getElementById('tableBody');
+
+    loading.style.display = 'block';
+    empty.style.display = 'none';
+    table.style.display = 'none';
+
+    const { data, error } = await supabase
+      .from('campaigns')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    loading.style.display = 'none';
+
+    if (error) {
+      loading.style.display = 'block';
+      loading.textContent = "Error loading data. Check console.";
+      console.error(error);
+      return;
+    }
+
+    renderStats(data);
+
+    if (!data || data.length === 0) {
+      empty.style.display = 'block';
+      return;
+    }
+
+    table.style.display = 'table';
+    tbody.innerHTML = '';
+    data.forEach(row => tbody.appendChild(renderRow(row)));
+    document.getElementById('lastUpdated').textContent = "Last updated: " + new Date().toLocaleTimeString();
+  }
+
+  function renderStats(data){
+    const total = data.length;
+    const pending = data.filter(r => (r.payment_status || 'pending') === 'pending').length;
+    const paid = data.filter(r => r.payment_status === 'paid').length;
+    const totalAmount = data.reduce((sum, r) => sum + (Number(r.payment_amount) || 0), 0);
+
+    document.getElementById('stats').innerHTML = `
+      <div class="stat"><div class="num">${total}</div><div class="label">Total Collabs</div></div>
+      <div class="stat"><div class="num">${pending}</div><div class="label">Pending</div></div>
+      <div class="stat"><div class="num">${paid}</div><div class="label">Refunded</div></div>
+      <div class="stat"><div class="num">₹${totalAmount.toFixed(0)}</div><div class="label">Total Order Value</div></div>
+    `;
+  }
+
+  function renderRow(row){
+    const tr = document.createElement('tr');
+    tr.dataset.id = row.id;
+
+    tr.innerHTML = `
+      <td><input type="text" class="f-name" value="${escapeHtml(row.creator_name || '')}"></td>
+      <td><input type="text" class="f-insta" value="${escapeHtml(row.instagram_handle || '')}"></td>
+      <td><input type="text" class="f-whatsapp" value="${escapeHtml(row.whatsapp_number || '')}"></td>
+      <td><input type="text" class="f-video" placeholder="reel link" value="${escapeHtml(row.video_link || '')}"></td>
+      <td><input type="number" class="f-amount" placeholder="0" value="${row.payment_amount || ''}"></td>
+      <td>
+        <select class="f-status">
+          <option value="pending" ${row.payment_status === 'pending' || !row.payment_status ? 'selected' : ''}>Pending</option>
+          <option value="paid" ${row.payment_status === 'paid' ? 'selected' : ''}>Refunded</option>
+          <option value="cancelled" ${row.payment_status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+        </select>
+      </td>
+      <td><input type="text" class="f-notes" value="${escapeHtml(row.notes || '')}"></td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn save">💾</button>
+          <button class="icon-btn del">🗑</button>
+        </div>
+      </td>
+    `;
+
+    tr.querySelector('.save').addEventListener('click', async () => {
+      const updates = {
+        creator_name: tr.querySelector('.f-name').value.trim(),
+        instagram_handle: tr.querySelector('.f-insta').value.trim(),
+        whatsapp_number: tr.querySelector('.f-whatsapp').value.trim(),
+        video_link: tr.querySelector('.f-video').value.trim(),
+        payment_amount: tr.querySelector('.f-amount').value ? Number(tr.querySelector('.f-amount').value) : null,
+        payment_status: tr.querySelector('.f-status').value,
+        notes: tr.querySelector('.f-notes').value.trim(),
+        updated_at: new Date().toISOString()
+      };
+      const { error } = await supabase.from('campaigns').update(updates).eq('id', row.id);
+      if (error) { alert("Failed to save. Try again."); console.error(error); return; }
+      loadData();
+    });
+
+    tr.querySelector('.del').addEventListener('click', async () => {
+      if (!confirm(`Delete submission from ${row.creator_name}?`)) return;
+      const { error } = await supabase.from('campaigns').delete().eq('id', row.id);
+      if (error) { alert("Failed to delete. Try again."); console.error(error); return; }
+      loadData();
+    });
+
+    return tr;
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, m => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[m]));
+  }
+</script>
+
+</body>
+</html>
